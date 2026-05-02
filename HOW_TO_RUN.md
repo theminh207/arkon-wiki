@@ -5,11 +5,11 @@
 | Tool | Version | Purpose |
 |---|---|---|
 | Python | 3.11 — 3.12 | Backend runtime |
+| Node.js | 20+ | Frontend (Next.js) |
 | PostgreSQL | 15+ | Main database (with pgvector extension) |
 | Redis | 7+ | Background job queue |
 | MinIO | Latest | S3-compatible file storage |
 | Neo4j | 5+ | Knowledge graph (optional) |
-| Node.js | 20+ | Frontend (when ready) |
 
 ## 1. Infrastructure
 
@@ -60,6 +60,8 @@ cp .env.example .env
 ```bash
 # Create virtual environment
 python -m venv .venv
+# OR
+py -3.11 -m venv .venv
 
 # Activate
 # Windows:
@@ -84,7 +86,19 @@ alembic upgrade head
 >
 > Also seeds 5 default knowledge types: General, SOP, Product, Project, Customer.
 
-## 5. Start Backend
+## 5. Install Frontend
+
+```bash
+cd frontend
+npm install
+```
+
+Create `frontend/.env.local`:
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:5055
+```
+
+## 6. Start Backend
 
 You need **2 terminals** — one for the API, one for the background worker.
 
@@ -114,7 +128,16 @@ python -m arq app.worker.WorkerSettings
 
 The worker processes document ingestion (chunking, embedding, entity extraction).
 
-## 6. Verify
+### Terminal 3: Frontend
+
+```bash
+cd frontend
+npm run dev
+```
+
+Open http://localhost:3000 — login with the admin credentials from `.env`.
+
+## 7. Verify
 
 ### API Health
 
@@ -152,7 +175,7 @@ Response:
 
 Use the `access_token` as `Authorization: Bearer <token>` for all admin API calls.
 
-## 7. API Overview
+## 8. API Overview
 
 ### Auth (public)
 | Method | Path | Description |
@@ -185,7 +208,7 @@ Use the `access_token` as `Authorization: Bearer <token>` for all admin API call
 |---|---|---|
 | `/mcp` | `Bearer ark_xxx` (MCP token) | MCP endpoint for Claude Desktop |
 
-## 8. Connect Claude Desktop
+## 9. Connect Claude Desktop
 
 After generating an MCP token for an employee, add to Claude Desktop config (`claude_desktop_config.json`):
 
@@ -202,7 +225,7 @@ After generating an MCP token for an employee, add to Claude Desktop config (`cl
 }
 ```
 
-## 9. Configure AI Providers
+## 10. Configure AI Providers
 
 After first login, go to API or Admin Portal to configure:
 
@@ -229,3 +252,6 @@ Without embedding config, document uploads will fail at the chunking/embedding s
 | `No admin created` on startup | Check `DEFAULT_ADMIN_EMAIL` / `DEFAULT_ADMIN_PASSWORD` in `.env` |
 | Documents stuck at `processing` | Worker is not running — start Terminal 2 |
 | `Neo4j not available` warning | Normal if `ENABLE_ENTITY_EXTRACTION=false` |
+| Frontend shows "API Error" | Backend not running, or `NEXT_PUBLIC_API_URL` incorrect in `frontend/.env.local` |
+| CORS errors in browser | Check `CORS_ORIGINS` in backend `.env` includes `http://localhost:3000` |
+| `requires Python 3.11` error | Use `py -3.11 -m venv .venv` to create venv with correct version |

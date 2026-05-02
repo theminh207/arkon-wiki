@@ -1,0 +1,82 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+export function Header() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
+
+  return (
+    <header className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border h-14 flex items-center justify-between px-6">
+      {/* Left — mobile placeholder */}
+      <div className="flex items-center gap-3">
+        <span className="material-symbols-outlined text-muted-foreground cursor-pointer hover:text-foreground transition-colors md:hidden">
+          menu
+        </span>
+      </div>
+
+      {/* Right */}
+      <div className="flex items-center gap-4">
+        <span className="text-xs font-medium text-muted-foreground bg-secondary px-2 py-1 rounded-md">
+          On-Premise
+        </span>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger>
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 px-2 hover:bg-secondary"
+            >
+              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+                {user?.name?.charAt(0).toUpperCase() || "?"}
+              </div>
+              <span className="text-sm font-medium hidden sm:inline">
+                {user?.name}
+              </span>
+              <span className="material-symbols-outlined text-muted-foreground text-base">
+                expand_more
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={() => router.push("/profile")}>
+              <span className="material-symbols-outlined mr-2 text-base">
+                person
+              </span>
+              Profile
+            </DropdownMenuItem>
+            {user?.role === "admin" && (
+              <DropdownMenuItem onClick={() => router.push("/settings")}>
+                <span className="material-symbols-outlined mr-2 text-base">
+                  settings
+                </span>
+                Settings
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+              <span className="material-symbols-outlined mr-2 text-base">
+                logout
+              </span>
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </header>
+  );
+}

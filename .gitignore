@@ -54,3 +54,6 @@ uv.lock
 
 # Grapuco
 .grapuco/
+
+# Reference
+stitch_enterprise_claude_control_center

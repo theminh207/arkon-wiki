@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import UUID, ARRAY, JSONB
 
 # revision identifiers
 revision = '002_rbac'
-down_revision = None  # Update this to point to your latest migration
+down_revision = '002'  # depends on 002_add_progress
 branch_labels = None
 depends_on = None
 
@@ -88,10 +88,12 @@ def upgrade() -> None:
     ))
 
     # 7. Remove old knowledge_type string column if it exists
-    try:
-        op.drop_column('sources', 'knowledge_type')
-    except Exception:
-        pass  # Column might not exist
+    op.execute("""
+        DO $$ BEGIN
+            ALTER TABLE sources DROP COLUMN IF EXISTS knowledge_type;
+        EXCEPTION WHEN OTHERS THEN NULL;
+        END $$;
+    """)
 
     # 8. Drop old channel tables if they exist
     op.execute("DROP TABLE IF EXISTS chat_messages CASCADE")

@@ -74,7 +74,23 @@ services:
 
   # ── Application ───────────────────────────────────────────────
 
+  migrator:
+    <<: *backend
+    container_name: arkon_migrator
+    command: alembic upgrade head
+    restart: "no"
+
   api:
+    <<: *backend
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     <<: *backend
     container_name: arkon_api
     ports:

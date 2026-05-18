@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { WikiPageDetail, DraftResponse } from "@/types/wiki";
 import { WikiPageTree } from "@/components/wiki/wiki-page-tree";
-import { WikiContent } from "@/components/wiki/wiki-content";
+import { WikiContent, preprocessWikilinks } from "@/components/wiki/wiki-content";
 import { WikiSidebarRight } from "@/components/wiki/wiki-backlinks";
 import { WikiEditor } from "@/components/wiki/wiki-editor";
 import { WikiDraftBanner } from "@/components/wiki/wiki-draft-banner";
@@ -321,9 +321,25 @@ export default function WikiPageViewer() {
                     {page.title}
                   </h1>
                   {page.summary && (
-                    <div className="mt-2 text-muted-foreground text-sm leading-6 [&_strong]:font-semibold [&_strong]:text-foreground [&_em]:italic">
-                      <ReactMarkdown components={{ p: ({ children }) => <>{children}</> }}>
-                        {page.summary}
+                    <div className="mt-2 text-muted-foreground text-sm leading-6 [&_strong]:font-semibold [&_strong]:text-foreground [&_em]:italic [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2">
+                      <ReactMarkdown
+                        components={{
+                          p: ({ children }) => <>{children}</>,
+                          a: ({ href, children }) => {
+                            if (href?.startsWith("/wiki/")) {
+                              return (
+                                <Link href={`${href}${scopeLinkSuffix}`}>{children}</Link>
+                              );
+                            }
+                            return (
+                              <a href={href} target="_blank" rel="noopener noreferrer">
+                                {children}
+                              </a>
+                            );
+                          },
+                        }}
+                      >
+                        {preprocessWikilinks(page.summary)}
                       </ReactMarkdown>
                     </div>
                   )}

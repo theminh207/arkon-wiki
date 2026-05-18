@@ -25,7 +25,7 @@ function wikiUrlTransform(url: string): string {
   return "";
 }
 
-function preprocessWikilinks(md: string): string {
+export function preprocessWikilinks(md: string): string {
   return md
     .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, "[$2](/wiki/$1)")
     .replace(/\[\[([^\]]+)\]\]/g, "[$1](/wiki/$1)");

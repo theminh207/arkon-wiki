@@ -824,7 +824,11 @@ async def approve_draft(
         scope_id_raw = meta.get("scope_id")
         try:
             scope_id = uuid.UUID(scope_id_raw) if isinstance(scope_id_raw, str) else scope_id_raw
-        except ValueError:
+        except (ValueError, TypeError):
+            scope_id = None
+        if scope_id is not None and not isinstance(scope_id, uuid.UUID):
+            # Hand-crafted metadata with a non-string non-UUID (e.g. int)
+            # shouldn't propagate downstream. Treat as missing scope.
             scope_id = None
 
         if not slug or slug in (INDEX_SLUG, LOG_SLUG):

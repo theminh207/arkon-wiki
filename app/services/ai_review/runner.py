@@ -107,12 +107,16 @@ async def run_sync_checks(
 # merges results with whatever L1+L2 stored already, writes back.
 # ---------------------------------------------------------------------------
 
-async def run_async_checks(draft_id: str) -> None:
+async def run_async_checks(draft_id: str, expected_round: Optional[int] = None) -> None:
     """Worker entry. Self-contained — opens its own session.
 
     Runs ALL four layers (L1 regex, L2 structural, L3 semantic, L4 LLM). The
     submit path no longer runs anything synchronously, so this is the only
     place AI checks execute.
+
+    `expected_round` is the draft's `revision_round` at enqueue time. If the
+    draft has been resubmitted by the time we finish (round bumped), we drop
+    our stale verdict — a newer job is already queued for the new content.
     """
     from app.database import async_session_factory
     from app.services.ai_review import llm_checks, regex_checks, semantic_checks, structural_checks
@@ -188,6 +192,25 @@ async def run_async_checks(draft_id: str) -> None:
                 "message": f"AI review crashed: {e}",
                 "matches": [],
             })
+
+        # Resubmit race guard: if the author resubmitted while we were running,
+        # `revision_round` will have bumped. Our verdict is for OLD content, so
+        # drop it — a newer job is already queued for the new content.
+        if expected_round is not None:
+            await db.refresh(draft, ["revision_round", "status"])
+            current_round = int(draft.revision_round or 0)
+            if current_round != expected_round:
+                logger.info(
+                    f"ai_pre_review_draft: draft={did} round changed "
+                    f"({expected_round} → {current_round}), dropping stale verdict"
+                )
+                return
+            if draft.status != "pending":
+                logger.info(
+                    f"ai_pre_review_draft: draft={did} no longer pending "
+                    f"(status={draft.status}), dropping verdict"
+                )
+                return
 
         # Worker is now the sole writer of ai_check_results — replace, don't merge.
         results = _build(new_checks)

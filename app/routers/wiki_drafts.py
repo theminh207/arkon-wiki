@@ -342,6 +342,21 @@ def _build_reviewable_page_filter(user: Employee):
     )
 
 
+def _expire_after_failed_approve(
+    db: AsyncSession, draft: WikiPageDraft, page: Optional[WikiPage],
+) -> None:
+    """Expire ORM attributes touched by a partial approve so a savepoint
+    rollback doesn't leave stale (e.g. bumped version) values on the
+    identity-mapped objects. Safe to call with `page=None`."""
+    try:
+        db.expire(draft)
+        if page is not None:
+            db.expire(page)
+    except Exception:
+        # If the object is no longer in the session, nothing to expire.
+        pass
+
+
 async def _load_draft(db: AsyncSession, draft_id: str) -> WikiPageDraft:
     try:
         did = uuid.UUID(draft_id)
@@ -1083,6 +1098,13 @@ async def bulk_approve_drafts(
         # Each draft gets its own SAVEPOINT so a mid-approve failure (conflict,
         # IntegrityError, etc.) rolls back just this draft instead of poisoning
         # the outer session for every subsequent iteration in the loop.
+        #
+        # IMPORTANT: SAVEPOINT rollback only reverts the DB — in-memory ORM
+        # attribute mutations (e.g. page.version += 1) stay on the identity-map
+        # instance. On error we MUST expire the touched objects so a later
+        # iteration that approves another draft on the same page re-reads the
+        # real version from DB, not the polluted value from the failed attempt.
+        page = None
         try:
             async with db.begin_nested():
                 page = await wiki_service.approve_draft(
@@ -1107,24 +1129,17 @@ async def bulk_approve_drafts(
                     db, wiki_draft_adapter, draft, user,
                     version_label=f"v{page.version}",
                 )
-        except wiki_service.DraftConflictError as e:
+        except (wiki_service.DraftConflictError, wiki_service.CreateDraftSlugConflict) as e:
+            _expire_after_failed_approve(db, draft, page)
             results.append(BulkApproveItemResult(
-                draft_id=did, status="error",
-                message=str(e),
-            ))
-            errored_count += 1
-            continue
-        except wiki_service.CreateDraftSlugConflict as e:
-            results.append(BulkApproveItemResult(
-                draft_id=did, status="error",
-                message=str(e),
+                draft_id=did, status="error", message=str(e),
             ))
             errored_count += 1
             continue
         except Exception as e:
+            _expire_after_failed_approve(db, draft, page)
             results.append(BulkApproveItemResult(
-                draft_id=did, status="error",
-                message=str(e),
+                draft_id=did, status="error", message=str(e),
             ))
             errored_count += 1
             continue

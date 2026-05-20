@@ -75,7 +75,14 @@ async def _enqueue_ai_review(db, draft: WikiPageDraft) -> None:
     try:
         from app.worker import get_arq_pool
         pool = await get_arq_pool()
-        await pool.enqueue_job("ai_pre_review_draft_task", str(draft.id))
+        # Pass revision_round so the worker can detect if the draft was
+        # resubmitted (round bumped) while it was running and skip its
+        # stale verdict instead of overwriting the newer one.
+        await pool.enqueue_job(
+            "ai_pre_review_draft_task",
+            str(draft.id),
+            int(draft.revision_round or 0),
+        )
     except Exception as e:
         logger.warning(f"AI review enqueue failed for draft {draft.id}: {e}")
         draft.ai_check_status = "skipped"

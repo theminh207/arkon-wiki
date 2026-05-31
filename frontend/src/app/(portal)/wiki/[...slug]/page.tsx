@@ -14,6 +14,7 @@ import { wikiTypeGroupLabel } from "@/components/wiki/wiki-type-badge";
 import { WikiSearchDialog } from "@/components/wiki/wiki-search-dialog";
 import { WikiScopeSwitcher } from "@/components/wiki/wiki-scope-switcher";
 import { WikiCreatePageDialog } from "@/components/wiki/wiki-create-page-dialog";
+import { WikiStatusBadge } from "@/components/wiki/wiki-status-badge";
 import { WikiScope } from "@/types/wiki";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
@@ -458,9 +459,14 @@ export default function WikiPageViewer() {
               {/* Page header + Edit button */}
               <div className="flex items-start justify-between gap-4 mb-8">
                 <div className="flex-1 min-w-0">
-                  <h1 className="font-heading text-4xl font-normal leading-tight text-foreground">
-                    {page.title}
-                  </h1>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h1 className="font-heading text-4xl font-normal leading-tight text-foreground">
+                      {page.title}
+                    </h1>
+                    {page.page_type !== "index" && page.page_type !== "log" && page.page_type !== "hot" && (
+                      <WikiStatusBadge status={page.status} className="mt-1 shrink-0" />
+                    )}
+                  </div>
                 </div>
 
                 {mode === "view" && (canEdit || canPropose) && (

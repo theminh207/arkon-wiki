@@ -226,8 +226,7 @@ Each page must be a proper encyclopedic article, NOT a flat bullet list:
   Do NOT invent or hallucinate slugs.
 
 # Minimum depth
-- concept/topic pages: at least 200 words of actual prose+structure.
-- entity pages: at least 100 words.
+- concept pages: at least 150 words of actual structured prose.
 - source pages: at least 150 words.
 
 # Image markers

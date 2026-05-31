@@ -138,6 +138,7 @@ async def run_commit_phase(
                             source_ids=[source.id],
                             scope_type=scope_type,
                             scope_id=scope_id,
+                            status=getattr(pr, "status", "seed"),
                         )
                         pages_created += 1
 
@@ -157,7 +158,7 @@ async def run_commit_phase(
                                 existing_page.content_md,
                                 pr.content_md,
                                 pr.slug,
-                            )
+                             )
 
                     page = await wiki_service.apply_update(
                         session,
@@ -169,6 +170,7 @@ async def run_commit_phase(
                         add_source_id=source.id,
                         scope_type=scope_type,
                         scope_id=scope_id,
+                        status=getattr(pr, "status", None),
                     )
                     if page is None:
                         page = await wiki_service.apply_create(
@@ -182,6 +184,7 @@ async def run_commit_phase(
                             source_ids=[source.id],
                             scope_type=scope_type,
                             scope_id=scope_id,
+                            status=getattr(pr, "status", "seed"),
                         )
                         pages_created += 1
                     else:
@@ -202,6 +205,10 @@ async def run_commit_phase(
                 logger.error(f"MRP COMMIT failed for '{pr.slug}' scope={scope_type}: {exc}")
 
         await wiki_service.regenerate_index(session, scope_type=scope_type, scope_id=scope_id)
+        try:
+            await wiki_service.regenerate_hot_cache(session, scope_type=scope_type, scope_id=scope_id)
+        except Exception as hot_exc:
+            logger.warning(f"MRP COMMIT regenerate_hot_cache failed for scope={scope_type}: {hot_exc}")
 
         log_entry = (
             f"MRP: ingested '{source.title or source.file_name or str(source.id)}': "

@@ -23,11 +23,13 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    case,
     func,
     text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.dialects.postgresql import ENUM as PgEnum
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 # ---------------------------------------------------------------------------
@@ -298,7 +300,10 @@ class WikiPage(Base):
     )
     slug: Mapped[str] = mapped_column(String(300), nullable=False)
     title: Mapped[str] = mapped_column(String(500), nullable=False)
-    page_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="seed",
+        comment="Lifecycle status: seed | developing | mature | evergreen"
+    )
     content_md: Mapped[str] = mapped_column(Text, nullable=False, default="")
     summary: Mapped[str] = mapped_column(Text, nullable=False, default="")
     # --- Scope: global or project (workspace) ---
@@ -328,8 +333,27 @@ class WikiPage(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
+    @hybrid_property
+    def page_type(self) -> str:
+        if self.slug in ("_index", "_log", "_hot"):
+            return self.slug.lstrip("_")
+        if self.slug.startswith("source/"):
+            return "source"
+        return "concept"
+
+    @page_type.expression
+    @classmethod
+    def page_type(cls):
+        return case(
+            (cls.slug == "_index", "index"),
+            (cls.slug == "_log", "log"),
+            (cls.slug == "_hot", "hot"),
+            (cls.slug.like("source/%"), "source"),
+            else_="concept"
+        )
+
     __table_args__ = (
-        Index("ix_wiki_pages_page_type", "page_type"),
+        Index("ix_wiki_pages_status", "status"),
     )
 
 

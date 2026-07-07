@@ -3,22 +3,22 @@ x-backend: &backend
   build:
     context: .
     dockerfile: Dockerfile
-  # GIẢI PHÁP TRIỆT ĐỂ: Truyền trực tiếp từng biến từ Coolify vào Container
+  # CÚ PHÁP TRUYỀN THẲNG: Ép Docker lấy chính xác giá trị thô từ hệ thống Coolify
   environment:
-    - DATABASE_URL=${DATABASE_URL}
-    - POSTGRES_USER=${POSTGRES_USER}
-    - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    - POSTGRES_DB=${POSTGRES_DB}
-    - SECRET_KEY=${SECRET_KEY}
-    - MCP_TOKEN_PEPPER=${MCP_TOKEN_PEPPER}
-    - REDIS_HOST=${REDIS_HOST}
-    - REDIS_PORT=${REDIS_PORT}
-    - REDIS_PASSWORD=${REDIS_PASSWORD}
-    - MINIO_ENDPOINT=${MINIO_ENDPOINT}
-    - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
-    - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
-    - DEFAULT_ADMIN_EMAIL=${DEFAULT_ADMIN_EMAIL}
-    - DEFAULT_ADMIN_PASSWORD=${DEFAULT_ADMIN_PASSWORD}
+    - DATABASE_URL
+    - POSTGRES_USER
+    - POSTGRES_PASSWORD
+    - POSTGRES_DB
+    - SECRET_KEY
+    - MCP_TOKEN_PEPPER
+    - REDIS_HOST
+    - REDIS_PORT
+    - REDIS_PASSWORD
+    - MINIO_ENDPOINT
+    - MINIO_ACCESS_KEY
+    - MINIO_SECRET_KEY
+    - DEFAULT_ADMIN_EMAIL
+    - DEFAULT_ADMIN_PASSWORD
   restart: always
   depends_on:
     redis:
@@ -58,6 +58,7 @@ services:
     ports:
       - "19002:9000"
       - "19003:9001"
+    # Lệnh Healthcheck chuẩn qua API của MinIO
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 10s

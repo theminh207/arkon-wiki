@@ -3,6 +3,8 @@ x-backend: &backend
   build:
     context: .
     dockerfile: Dockerfile
+  # Dòng then chốt: Yêu cầu Docker đọc biến môi trường từ Coolify
+  env_file: [.env]
   restart: always
   depends_on:
     redis:

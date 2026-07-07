@@ -13,7 +13,7 @@ x-backend: &backend
     - ./temp_uploads:/app/temp_uploads
 
 services:
-  # ── Infrastructure ────────────────────────────────────────────
+  # ── Infrastructure (Chỉ giữ Redis và Minio trên App Server) ──
 
   redis:
     image: redis:7-alpine
@@ -38,11 +38,13 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin123}
     volumes:
       - minio_data:/data
+    # Đã đổi sang dải cổng cao để tránh xung đột vật lý trên máy chủ .203
     ports:
-      - "9002:9000"
-      - "9003:9001"
+      - "19002:9000"
+      - "19003:9001"
+    # Cập nhật lệnh Healthcheck an toàn hơn cho MinIO
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -65,7 +67,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    # CỔNG VẬT LÝ BYPASS PROXY
+    # LUẬT BẮT BUỘC: Bypass Proxy đâm thẳng cổng vật lý
     ports:
       - "5055:5055"
     command: python -m uvicorn app.main:app --host 0.0.0.0 --port 5055 --proxy-headers --forwarded-allow-ips='*'
@@ -101,7 +103,7 @@ services:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5055}
     container_name: arkon_frontend
     restart: always
-    # CỔNG VẬT LÝ BYPASS PROXY
+    # LUẬT BẮT BUỘC: Bypass Proxy đâm thẳng cổng vật lý
     ports:
       - "3119:3000"
     environment:
